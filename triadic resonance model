@@ -1,0 +1,60 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+# Define the triadic resonance system dynamics
+def triadic_resonance(t, state, lambda_A, lambda_S, lambda_O, kappa_AS, kappa_SA, alpha, beta, gamma):
+    A, S, O = state
+    dA_dt = -lambda_A * A + kappa_AS * S
+    dS_dt = -lambda_S * S + kappa_SA * A
+    dO_dt = -lambda_O * O + alpha * A + beta * S + gamma * A * S
+    return [dA_dt, dS_dt, dO_dt]
+
+# Parameters for the system
+lambda_A = 0.1  # Damping for Ah'raen (Stability)
+lambda_S = 0.1  # Damping for Sa'oren (Resonance)
+lambda_O = 0.1  # Damping for Oshen (Flow)
+kappa_AS = 0.5  # Coupling from Sa'oren to Ah'raen
+kappa_SA = 0.5  # Coupling from Ah'raen to Sa'oren
+alpha = 0.2     # Linear contribution of Ah'raen to Oshen
+beta = 0.2      # Linear contribution of Sa'oren to Oshen
+gamma = 0.1     # Nonlinear interaction between Ah'raen and Sa'oren
+
+# Initial conditions
+A0, S0, O0 = 1.0, 0.5, 0.1  # Starting values for Ah'raen, Sa'oren, Oshen
+initial_conditions = [A0, S0, O0]
+
+# Time span for the simulation
+time_span = (0, 50)  # Simulate from t=0 to t=50
+time_eval = np.linspace(time_span[0], time_span[1], 1000)  # 1000 time points for smooth visualization
+
+# Solve the differential equations
+solution = solve_ivp(
+    triadic_resonance, time_span, initial_conditions, t_eval=time_eval,
+    args=(lambda_A, lambda_S, lambda_O, kappa_AS, kappa_SA, alpha, beta, gamma)
+)
+
+# Extract results
+A_values, S_values, O_values = solution.y
+
+# Plot the results
+plt.figure(figsize=(10, 6))
+plt.plot(time_eval, A_values, label="Ah'raen (Stability)")
+plt.plot(time_eval, S_values, label="Sa'oren (Resonance)")
+plt.plot(time_eval, O_values, label="Oshen (Flow)")
+plt.title("Triadic Resonance Dynamics")
+plt.xlabel("Time")
+plt.ylabel("Amplitude")
+plt.legend()
+plt.grid()
+plt.show()
+
+# 3D Visualization of the attractor
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot(A_values, S_values, O_values, lw=0.5, color="blue")
+ax.set_title("Triadic Resonance Attractor")
+ax.set_xlabel("Ah'raen (Stability)")
+ax.set_ylabel("Sa'oren (Resonance)")
+ax.set_zlabel("Oshen (Flow)")
+plt.show()
