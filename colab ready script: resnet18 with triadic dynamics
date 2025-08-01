@@ -1,0 +1,85 @@
+# Install necessary libraries (if not already installed)
+!pip install torch torchvision matplotlib
+
+# Import libraries
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import datasets, transforms, models
+import matplotlib.pyplot as plt
+
+# Set device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# Load CIFAR-10 dataset
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
+train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+# Load ResNet-18 model
+model = models.resnet18(pretrained=False)
+model.fc = nn.Linear(512, 10)  # Adjust for CIFAR-10
+model = model.to(device)
+
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+# Triadic Dynamics parameters
+stability_factor = 0.6  # Ah'raen
+resonance_factor = 0.3  # Sa'oren
+flow_factor = 0.4       # Oshen
+
+# Training function with Triadic Dynamics
+def train_model(model, train_loader, epochs=5):
+    model.train()
+    losses = []
+
+    for epoch in range(epochs):
+        epoch_loss = 0
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+            # Backward pass
+            optimizer.zero_grad()
+            loss.backward()
+
+            # Triadic dynamics
+            ahraen = stability_factor * torch.mean(loss).item()  # Stability influence
+            saoren = resonance_factor * torch.sin(torch.mean(torch.tensor([p.mean() for p in model.parameters()])))
+            oshen = flow_factor * (ahraen + saoren)
+
+            # Update weights
+            for param in model.parameters():
+                param.data -= optimizer.param_groups[0]['lr'] * (param.grad + ahraen + saoren + oshen)
+
+            epoch_loss += loss.item()
+
+        # Log loss
+        avg_loss = epoch_loss / len(train_loader)
+        losses.append(avg_loss)
+        print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss}")
+
+    return losses
+
+# Train the model
+losses = train_model(model, train_loader, epochs=5)
+
+# Plot the loss curve
+plt.plot(losses, label='Triadic Framework Loss')
+plt.title('Training Loss with Triadic Dynamics (ResNet-18)')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
